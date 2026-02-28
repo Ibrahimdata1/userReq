@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Supabase Connection</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    .ok   { background: #d1fae5; border: 1px solid #6ee7b7; padding: 12px; border-radius: 8px; margin: 8px 0; }
+    .fail { background: #fee2e2; border: 1px solid #fca5a5; padding: 12px; border-radius: 8px; margin: 8px 0; }
+    .info { background: #e0f2fe; border: 1px solid #7dd3fc; padding: 12px; border-radius: 8px; margin: 8px 0; }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; margin: 4px 0 0; }
+    button { background: #4f46e5; color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h2>🔧 Test Supabase Connection</h2>
+  <p>กดปุ่มเพื่อทดสอบการเชื่อมต่อและ insert ข้อมูลทดสอบ</p>
+  <button id="btn" onclick="runTest()">▶ เริ่มเทส</button>
+  <div id="log" style="margin-top: 20px;"></div>
+
+  <script type="module">
+    // ใส่ค่าตรงนี้ให้ตรงกับ .env
+    const SUPABASE_URL = 'https://kgntldthitjzgfelxrqx.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnbnRsZHRoaXRqemdmZWx4cnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTcxNzQsImV4cCI6MjA4Nzg3MzE3NH0.jfe_oU78lBqpmb5DJWWPoS5O3zIYRjkCMSP5or4PyNM'
+
+    const log = document.getElementById('log')
+
+    function addLog(type, title, detail = '') {
+      const div = document.createElement('div')
+      div.className = type
+      div.innerHTML = `<strong>${title}</strong>${detail ? `<pre>${detail}</pre>` : ''}`
+      log.appendChild(div)
+    }
+
+    window.runTest = async function() {
+      log.innerHTML = ''
+      const btn = document.getElementById('btn')
+      btn.disabled = true
+      btn.textContent = 'กำลังเทส...'
+
+      // ── ขั้นที่ 1: เช็ค URL + Key ──
+      addLog('info', '1. ตรวจสอบค่า Config...')
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        addLog('fail', '❌ ไม่มี URL หรือ Key')
+        btn.disabled = false; btn.textContent = '▶ เริ่มเทส'; return
+      }
+      addLog('ok', `✅ URL: ${SUPABASE_URL}`)
+      addLog('ok', `✅ Key: ${SUPABASE_ANON_KEY.slice(0, 30)}...`)
+
+      // ── ขั้นที่ 2: เทส INSERT ──
+      addLog('info', '2. ทดสอบ INSERT ข้อมูลทดสอบ...')
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/client_requirements`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({
+            client_name: '[TEST] ข้อมูลทดสอบ',
+            contact_info: '0000000000',
+            project_type: 'เว็บไซต์',
+            budget: 'ทดสอบ',
+            requirements: 'ข้อมูลทดสอบจาก test script — ลบได้',
+          }),
+        })
+
+        if (res.ok || res.status === 201) {
+          addLog('ok', '✅ INSERT สำเร็จ! RLS Policy ทำงานถูกต้องแล้ว')
+          addLog('info', '💡 ไปลบแถวทดสอบที่ Supabase > Table Editor > client_requirements ได้เลย')
+        } else {
+          const body = await res.text()
+          addLog('fail', `❌ INSERT ล้มเหลว (HTTP ${res.status})`, body)
+
+          if (body.includes('row-level security')) {
+            addLog('fail', '🔒 สาเหตุ: RLS Policy ยังไม่ถูกต้อง → รัน SQL ที่แนะนำอีกครั้ง')
+          } else if (body.includes('does not exist')) {
+            addLog('fail', '📋 สาเหตุ: ยังไม่มีตาราง client_requirements → รัน SQL สร้างตารางก่อน')
+          } else if (res.status === 401) {
+            addLog('fail', '🔑 สาเหตุ: Anon Key ผิด → ตรวจสอบค่าใน .env อีกครั้ง')
+          }
+        }
+      } catch (err) {
+        addLog('fail', '❌ เชื่อมต่อ Supabase ไม่ได้เลย', err.message)
+      }
+
+      btn.disabled = false
+      btn.textContent = '▶ เริ่มเทสอีกครั้ง'
+    }
+  </script>
+</body>
+</html>
