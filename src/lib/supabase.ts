@@ -27,7 +27,7 @@ export async function saveClientRequirement(
 // Auth: login สำหรับ Admin
 export async function adminSignIn(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+  if (error) throw new Error(error.message)
 }
 
 export async function adminSignOut() {

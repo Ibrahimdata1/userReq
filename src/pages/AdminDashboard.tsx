@@ -39,6 +39,7 @@ function LeadModal({
     setUpdating(true)
     await onStatusChange(lead.id, s)
     setUpdating(false)
+    onClose()
   }
 
   const date = new Date(lead.created_at).toLocaleString('th-TH', {
