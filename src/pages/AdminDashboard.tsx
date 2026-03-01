@@ -124,6 +124,141 @@ function LeadModal({
   )
 }
 
+// ── Analytics Section ─────────────────────────────────────────────
+function AnalyticsSection({ leads }: { leads: ClientRequirement[] }) {
+  const dailyData = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (6 - i))
+      return d
+    })
+    return days.map(d => ({
+      label: d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' }),
+      count: leads.filter(l => new Date(l.created_at).toDateString() === d.toDateString()).length,
+    }))
+  }, [leads])
+
+  const conversionRate = useMemo(() => {
+    const resolved = leads.filter(l => l.status === 'closed_won' || l.status === 'closed_lost').length
+    const won = leads.filter(l => l.status === 'closed_won').length
+    return resolved > 0 ? Math.round((won / resolved) * 100) : 0
+  }, [leads])
+
+  const typeData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    leads.forEach(l => {
+      const short = l.project_type.split('/')[0].trim().split('(')[0].trim()
+      counts[short] = (counts[short] || 0) + 1
+    })
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  }, [leads])
+
+  const budgetData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    leads.forEach(l => { if (l.budget) counts[l.budget] = (counts[l.budget] || 0) + 1 })
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  }, [leads])
+
+  const maxDaily  = Math.max(...dailyData.map(d => d.count), 1)
+  const maxType   = Math.max(...typeData.map(d => d[1]), 1)
+  const maxBudget = Math.max(...budgetData.map(d => d[1]), 1)
+
+  if (leads.length === 0) return null
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      {/* 1. Lead 7 วันล่าสุด */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-700 mb-4">Lead 7 วันล่าสุด</h3>
+        <div className="flex items-end gap-2 h-32">
+          {dailyData.map((d, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs text-gray-500 font-medium">{d.count > 0 ? d.count : ''}</span>
+              <div className="w-full rounded-t-lg bg-indigo-500 transition-all"
+                style={{ height: `${(d.count / maxDaily) * 100}%`, minHeight: d.count > 0 ? '8px' : '2px', opacity: d.count > 0 ? 1 : 0.15 }} />
+              <span className="text-xs text-gray-400 text-center leading-tight">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. Conversion Rate */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-700 mb-4">Conversion Rate</h3>
+        <div className="flex items-center gap-6">
+          <div className="relative w-28 h-28 shrink-0">
+            <svg viewBox="0 0 36 36" className="w-28 h-28 -rotate-90">
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#6366f1" strokeWidth="3"
+                strokeDasharray={`${conversionRate} ${100 - conversionRate}`}
+                strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold text-indigo-600">{conversionRate}%</span>
+            </div>
+          </div>
+          <div className="space-y-2 text-sm flex-1">
+            {([
+              { label: 'ปิดงานสำเร็จ',     status: 'closed_won',  color: 'bg-green-400' },
+              { label: 'ไม่ได้งาน',         status: 'closed_lost', color: 'bg-red-400' },
+              { label: 'กำลังดำเนินการ',    status: 'in_progress', color: 'bg-yellow-400' },
+            ] as const).map(({ label, status, color }) => (
+              <div key={status} className="flex items-center gap-2">
+                <span className={`w-3 h-3 rounded-full shrink-0 ${color}`} />
+                <span className="text-gray-600">{label}</span>
+                <span className="font-semibold ml-auto">{leads.filter(l => l.status === status).length}</span>
+              </div>
+            ))}
+            <p className="text-xs text-gray-400 pt-1">คำนวณจาก Lead ที่ปิดแล้วเท่านั้น</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. ประเภทงานยอดนิยม */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-700 mb-4">ประเภทงานยอดนิยม</h3>
+        <div className="space-y-3">
+          {typeData.length === 0
+            ? <p className="text-sm text-gray-400">ยังไม่มีข้อมูล</p>
+            : typeData.map(([type, count], i) => (
+              <div key={i}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 truncate max-w-[75%]">{type}</span>
+                  <span className="font-semibold text-gray-800">{count} ราย</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(count / maxType) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+
+      {/* 4. งบประมาณที่ต้องการ */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-700 mb-4">งบประมาณที่ต้องการ</h3>
+        <div className="space-y-3">
+          {budgetData.length === 0
+            ? <p className="text-sm text-gray-400">ยังไม่มีข้อมูล</p>
+            : budgetData.map(([budget, count], i) => (
+              <div key={i}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 truncate max-w-[75%]">{budget.split('(')[0].trim()}</span>
+                  <span className="font-semibold text-gray-800">{count} ราย</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(count / maxBudget) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 // ── Login Screen ─────────────────────────────────────────────────
 function LoginScreen() {
   const [email, setEmail]       = useState('')
@@ -307,6 +442,9 @@ export default function AdminDashboard() {
           <StatCard label="ปิดงานสำเร็จ"     value={stats.closed_won}  color="text-green-600" />
           <StatCard label="ไม่ได้งาน"        value={stats.closed_lost} color="text-red-600" />
         </div>
+
+        {/* Analytics Charts */}
+        <AnalyticsSection leads={leads} />
 
         {/* Filters */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
