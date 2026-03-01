@@ -51,6 +51,19 @@ export async function fetchAllLeads(): Promise<ClientRequirement[]> {
   return data as ClientRequirement[]
 }
 
+// บันทึก error log (Trigger จะแจ้ง Telegram อัตโนมัติ)
+export async function saveErrorLog(
+  clientName: string,
+  contactInfo: string,
+  errorMessage: string
+): Promise<void> {
+  await supabase.from('error_logs').insert([{
+    client_name: clientName,
+    contact_info: contactInfo,
+    error_message: errorMessage,
+  }])
+}
+
 // เปลี่ยน status ของ lead
 export async function updateLeadStatus(id: string, status: LeadStatus): Promise<void> {
   const { error } = await supabase
