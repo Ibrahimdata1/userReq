@@ -179,19 +179,23 @@ function LineChart({ data }: { data: { label: string; count: number }[] }) {
 // ── Vertical Bar Chart ────────────────────────────────────────────
 function VerticalBar({ data, color }: { data: [string, number][]; color: string }) {
   const max = Math.max(...data.map(d => d[1]), 1)
+  const BAR_MAX_H = 120 // px สูงสุด
   return (
-    <div className="flex items-end gap-2 h-48 pt-4">
-      {data.map(([label, count], i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-          <span className="text-xs font-semibold text-gray-600">{count}</span>
-          <div className={`w-full rounded-t-lg ${color} transition-all`}
-            style={{ height: `${(count / max) * 100}%`, minHeight: count > 0 ? '8px' : '2px' }} />
-          <span className="text-center leading-tight text-gray-400 w-full truncate px-0.5"
-            style={{ fontSize: '0.6rem' }}>
-            {label.replace(' (', '\n(').split('\n')[0]}
-          </span>
-        </div>
-      ))}
+    <div className="flex items-end gap-2 pt-2">
+      {data.map(([label, count], i) => {
+        const barH = count > 0 ? Math.max((count / max) * BAR_MAX_H, 8) : 2
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <span className="text-xs font-semibold text-gray-600">{count}</span>
+            <div className={`w-full rounded-t-lg ${color} transition-all`}
+              style={{ height: `${barH}px` }} />
+            <span className="text-center leading-tight text-gray-400 w-full truncate px-0.5"
+              style={{ fontSize: '0.6rem' }}>
+              {label.replace(' (', '\n(').split('\n')[0]}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -217,16 +221,21 @@ function AnalyticsTab({ leads }: { leads: ClientRequirement[] }) {
   const typeData = useMemo(() => {
     const counts: Record<string, number> = {}
     leads.forEach(l => {
-      const short = l.project_type.split('/')[0].trim().split('(')[0].trim()
-      counts[short] = (counts[short] || 0) + 1
+      const key = l.project_type.trim()
+      counts[key] = (counts[key] || 0) + 1
     })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6) as [string, number][]
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]) as [string, number][]
   }, [leads])
 
   const budgetData = useMemo(() => {
     const counts: Record<string, number> = {}
-    leads.forEach(l => { if (l.budget) counts[l.budget.split('(')[0].trim()] = (counts[l.budget.split('(')[0].trim()] || 0) + 1 })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6) as [string, number][]
+    leads.forEach(l => {
+      if (l.budget) {
+        const key = l.budget.trim()
+        counts[key] = (counts[key] || 0) + 1
+      }
+    })
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]) as [string, number][]
   }, [leads])
 
   if (leads.length === 0) return (
