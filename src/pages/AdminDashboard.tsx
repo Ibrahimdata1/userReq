@@ -124,19 +124,95 @@ function LeadModal({
   )
 }
 
+// ── Line Chart (SVG smooth curve) ────────────────────────────────
+function LineChart({ data }: { data: { label: string; count: number }[] }) {
+  const W = 600, H = 150
+  const PAD = { top: 24, right: 16, bottom: 32, left: 16 }
+  const innerW = W - PAD.left - PAD.right
+  const innerH = H - PAD.top - PAD.bottom
+  const maxVal = Math.max(...data.map(d => d.count), 1)
+  const step   = data.length <= 7 ? 1 : data.length <= 30 ? 5 : 10
+
+  const pts = data.map((d, i) => ({
+    x: PAD.left + (i / Math.max(data.length - 1, 1)) * innerW,
+    y: PAD.top  + innerH - (d.count / maxVal) * innerH,
+    ...d,
+  }))
+
+  let linePath = '', fillPath = ''
+  if (pts.length >= 2) {
+    linePath = `M ${pts[0].x} ${pts[0].y}`
+    for (let i = 1; i < pts.length; i++) {
+      const cpx = (pts[i - 1].x + pts[i].x) / 2
+      linePath += ` C ${cpx} ${pts[i-1].y} ${cpx} ${pts[i].y} ${pts[i].x} ${pts[i].y}`
+    }
+    fillPath = linePath + ` L ${pts[pts.length-1].x} ${PAD.top + innerH} L ${pts[0].x} ${PAD.top + innerH} Z`
+  }
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#6366f1" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.01" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75, 1].map((r, i) => (
+        <line key={i} x1={PAD.left} y1={PAD.top + innerH - r * innerH}
+          x2={W - PAD.right} y2={PAD.top + innerH - r * innerH}
+          stroke="#f3f4f6" strokeWidth="1" />
+      ))}
+      {fillPath && <path d={fillPath} fill="url(#lineGrad)" />}
+      {linePath && <path d={linePath} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" />}
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3" fill="white" stroke="#6366f1" strokeWidth="2" />
+      ))}
+      {pts.map((p, i) => (
+        (i % step === 0 || i === pts.length - 1) && (
+          <text key={i} x={p.x} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{p.label}</text>
+        )
+      ))}
+    </svg>
+  )
+}
+
+// ── Vertical Bar Chart ────────────────────────────────────────────
+function VerticalBar({ data, color }: { data: [string, number][]; color: string }) {
+  const max = Math.max(...data.map(d => d[1]), 1)
+  return (
+    <div className="flex items-end gap-2 h-48 pt-4">
+      {data.map(([label, count], i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+          <span className="text-xs font-semibold text-gray-600">{count}</span>
+          <div className={`w-full rounded-t-lg ${color} transition-all`}
+            style={{ height: `${(count / max) * 100}%`, minHeight: count > 0 ? '8px' : '2px' }} />
+          <span className="text-center leading-tight text-gray-400 w-full truncate px-0.5"
+            style={{ fontSize: '0.6rem' }}>
+            {label.replace(' (', '\n(').split('\n')[0]}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Analytics Tab ─────────────────────────────────────────────────
 function AnalyticsTab({ leads }: { leads: ClientRequirement[] }) {
+  const [range, setRange] = useState<7 | 30 | 90>(7)
+
   const dailyData = useMemo(() => {
-    const days = Array.from({ length: 7 }, (_, i) => {
+    const days = Array.from({ length: range }, (_, i) => {
       const d = new Date()
-      d.setDate(d.getDate() - (6 - i))
+      d.setDate(d.getDate() - (range - 1 - i))
       return d
     })
     return days.map(d => ({
-      label: d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' }),
+      label: d.toLocaleDateString('th-TH', range === 7
+        ? { weekday: 'short', day: 'numeric' }
+        : { day: 'numeric', month: 'short' }),
       count: leads.filter(l => new Date(l.created_at).toDateString() === d.toDateString()).length,
     }))
-  }, [leads])
+  }, [leads, range])
 
   const typeData = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -144,18 +220,14 @@ function AnalyticsTab({ leads }: { leads: ClientRequirement[] }) {
       const short = l.project_type.split('/')[0].trim().split('(')[0].trim()
       counts[short] = (counts[short] || 0) + 1
     })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6) as [string, number][]
   }, [leads])
 
   const budgetData = useMemo(() => {
     const counts: Record<string, number> = {}
-    leads.forEach(l => { if (l.budget) counts[l.budget] = (counts[l.budget] || 0) + 1 })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+    leads.forEach(l => { if (l.budget) counts[l.budget.split('(')[0].trim()] = (counts[l.budget.split('(')[0].trim()] || 0) + 1 })
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6) as [string, number][]
   }, [leads])
-
-  const maxDaily  = Math.max(...dailyData.map(d => d.count), 1)
-  const maxType   = Math.max(...typeData.map(d => d[1]), 1)
-  const maxBudget = Math.max(...budgetData.map(d => d[1]), 1)
 
   if (leads.length === 0) return (
     <div className="text-center text-gray-400 py-20 text-sm">ยังไม่มีข้อมูล Lead</div>
@@ -164,63 +236,40 @@ function AnalyticsTab({ leads }: { leads: ClientRequirement[] }) {
   return (
     <div className="space-y-4">
 
-      {/* แนวโน้ม New Lead 7 วัน */}
+      {/* แนวโน้ม Lead — Line Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="font-semibold text-gray-700 mb-6">แนวโน้ม Lead 7 วันล่าสุด</h3>
-        <div className="flex items-end gap-3 h-40">
-          {dailyData.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-              <span className="text-sm font-semibold text-indigo-600">{d.count > 0 ? d.count : ''}</span>
-              <div className="w-full rounded-t-xl bg-indigo-500 transition-all"
-                style={{ height: `${(d.count / maxDaily) * 100}%`, minHeight: d.count > 0 ? '12px' : '3px', opacity: d.count > 0 ? 1 : 0.12 }} />
-              <span className="text-xs text-gray-400 text-center leading-tight">{d.label}</span>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-semibold text-gray-700">แนวโน้ม Lead</h3>
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            {([7, 30, 90] as const).map(r => (
+              <button key={r} onClick={() => setRange(r)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                  range === r ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}>
+                {r} วัน
+              </button>
+            ))}
+          </div>
         </div>
+        <LineChart data={dailyData} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* ประเภทงานยอดนิยม */}
+        {/* ประเภทงาน — Vertical Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-semibold text-gray-700 mb-5">ประเภทงานที่ลูกค้าเลือก</h3>
-          <div className="space-y-4">
-            {typeData.length === 0
-              ? <p className="text-sm text-gray-400">ยังไม่มีข้อมูล</p>
-              : typeData.map(([type, count], i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-600 truncate max-w-[75%]">{type}</span>
-                    <span className="font-semibold text-gray-800">{count} ราย</span>
-                  </div>
-                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full transition-all"
-                      style={{ width: `${(count / maxType) * 100}%` }} />
-                  </div>
-                </div>
-              ))}
-          </div>
+          <h3 className="font-semibold text-gray-700 mb-2">ประเภทงานที่ลูกค้าเลือก</h3>
+          {typeData.length === 0
+            ? <p className="text-sm text-gray-400 py-10 text-center">ยังไม่มีข้อมูล</p>
+            : <VerticalBar data={typeData} color="bg-indigo-500" />}
         </div>
 
-        {/* งบประมาณส่วนใหญ่ */}
+        {/* งบประมาณ — Vertical Bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h3 className="font-semibold text-gray-700 mb-5">งบประมาณที่ลูกค้าต้องการ</h3>
-          <div className="space-y-4">
-            {budgetData.length === 0
-              ? <p className="text-sm text-gray-400">ยังไม่มีข้อมูล</p>
-              : budgetData.map(([budget, count], i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-600 truncate max-w-[75%]">{budget.split('(')[0].trim()}</span>
-                    <span className="font-semibold text-gray-800">{count} ราย</span>
-                  </div>
-                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-violet-500 rounded-full transition-all"
-                      style={{ width: `${(count / maxBudget) * 100}%` }} />
-                  </div>
-                </div>
-              ))}
-          </div>
+          <h3 className="font-semibold text-gray-700 mb-2">งบประมาณที่ลูกค้าต้องการ</h3>
+          {budgetData.length === 0
+            ? <p className="text-sm text-gray-400 py-10 text-center">ยังไม่มีข้อมูล</p>
+            : <VerticalBar data={budgetData} color="bg-violet-500" />}
         </div>
 
       </div>
