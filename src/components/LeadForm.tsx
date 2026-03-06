@@ -7,9 +7,140 @@ import {
 } from '../types'
 
 type FormStatus = 'idle' | 'loading' | 'success' | 'error' | 'cooldown'
-
 type FormErrors = Partial<Record<keyof NewClientRequirement, string>>
+type Lang = 'th' | 'en'
 
+// ─── i18n ───────────────────────────────────────────────
+const t = {
+  th: {
+    headerComment: '// new project',
+    headerTitle: 'เริ่มโปรเจกต์ของคุณ',
+    headerSubtitle: 'กรอกข้อมูลด้านล่าง ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง',
+    statusBadge: 'พร้อมรับงาน',
+    labelName: 'ชื่อ-นามสกุล / ชื่อบริษัท',
+    placeholderName: 'เช่น สมชาย ใจดี หรือ บริษัท XYZ จำกัด',
+    labelPhone: 'เบอร์โทรศัพท์ติดต่อ',
+    placeholderPhone: 'เช่น 0812345678',
+    labelProjectType: 'ประเภทของงาน',
+    selectProjectType: '-- เลือกประเภทงาน --',
+    labelExisting: 'มีเว็บไซต์/ระบบเก่าอยู่แล้วหรือไม่?',
+    existingYes: 'มีอยู่แล้ว',
+    existingNo: 'ยังไม่มี',
+    labelBudget: 'ช่วงงบประมาณที่ต้องการ',
+    budgetHint: 'กรุณาเลือกประเภทงานก่อน แล้วงบประมาณจะแสดงให้เองครับ',
+    labelDeadline: 'กำหนดส่งงานที่ต้องการ',
+    selectDeadline: '-- เลือกระยะเวลา --',
+    labelRef: 'เว็บไซต์อ้างอิงที่ชอบ',
+    labelRefOptional: '(ไม่บังคับ)',
+    placeholderRef: 'เช่น https://example.com',
+    refHint: 'ใส่เว็บที่ชอบ style หรือ feature ทีมจะได้เข้าใจได้เร็วขึ้น',
+    labelRequirements: 'อยากได้อะไรบ้าง? บอกเราได้เลย',
+    requirementsHint: 'ไม่ต้องใช้ภาษาเทคนิค เขียนแบบคุยกันเองก็ได้ครับ',
+    placeholderRequirements: 'เช่น อยากได้เว็บขายของ มีรูปสินค้า ลูกค้ากดสั่งได้ จ่ายเงินผ่านบัตรได้ และมีหน้าให้เราจัดการออเดอร์',
+    submitBtn: 'ส่งข้อมูลขอใบเสนอราคา',
+    submitting: 'กำลังดำเนินการ...',
+    privacyNote: 'ข้อมูลของคุณจะถูกเก็บเป็นความลับ และใช้เพื่อประเมินราคาเท่านั้น',
+    successTitle: 'ขอบคุณมากครับ/ค่ะ!',
+    successMsg: 'ทีมงานได้รับข้อมูลแล้ว จะติดต่อกลับภายใน',
+    successTime: '24 ชั่วโมง',
+    cooldownMsg: (s: number) => `ส่งข้อมูลใหม่ได้ในอีก ${s} วินาที`,
+    errorTitle: 'ขออภัย ส่งข้อมูลไม่สำเร็จในขณะนี้',
+    errorMsg: 'อาจเกิดจากสัญญาณอินเทอร์เน็ต หรือระบบกำลังปรับปรุงชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อทีมงานโดยตรงได้เลยครับ',
+    errName: 'กรุณากรอกชื่อ-นามสกุล หรือชื่อบริษัท',
+    errPhone: 'กรุณากรอกเบอร์โทรศัพท์',
+    errPhoneFormat: 'เบอร์โทรต้องเป็นตัวเลข 9-10 หลัก',
+    errProjectType: 'กรุณาเลือกประเภทของงาน',
+    errBudget: 'กรุณาเลือกช่วงงบประมาณ',
+    errDeadline: 'กรุณาเลือกกำหนดส่งงานที่ต้องการ',
+    errRequirements: 'กรุณาบอกว่าอยากได้อะไร เขียนแบบไหนก็ได้ครับ',
+  },
+  en: {
+    headerComment: '// new project',
+    headerTitle: 'Start Your Project',
+    headerSubtitle: 'Fill in the details below. Our team will get back to you within 24 hours.',
+    statusBadge: 'Available',
+    labelName: 'Full Name / Company Name',
+    placeholderName: 'e.g. John Doe or Acme Corp Ltd.',
+    labelPhone: 'Phone Number',
+    placeholderPhone: 'e.g. 0812345678',
+    labelProjectType: 'Project Type',
+    selectProjectType: '-- Select project type --',
+    labelExisting: 'Do you have an existing website/system?',
+    existingYes: 'Yes',
+    existingNo: 'No',
+    labelBudget: 'Budget Range',
+    budgetHint: 'Please select a project type first, then budget options will appear.',
+    labelDeadline: 'Desired Timeline',
+    selectDeadline: '-- Select timeline --',
+    labelRef: 'Reference Website',
+    labelRefOptional: '(optional)',
+    placeholderRef: 'e.g. https://example.com',
+    refHint: 'Share a website you like so our team can better understand your vision.',
+    labelRequirements: 'What do you need? Tell us everything!',
+    requirementsHint: 'No technical language needed. Just describe it in your own words.',
+    placeholderRequirements: 'e.g. I want an e-commerce website with product images, online ordering, card payments, and an order management dashboard.',
+    submitBtn: 'Submit Project Request',
+    submitting: 'Processing...',
+    privacyNote: 'Your information is kept confidential and used for quotation purposes only.',
+    successTitle: 'Thank you!',
+    successMsg: 'Our team has received your information. We will contact you within',
+    successTime: '24 hours',
+    cooldownMsg: (s: number) => `You can submit again in ${s} seconds`,
+    errorTitle: 'Sorry, submission failed',
+    errorMsg: 'This might be due to internet connection or temporary maintenance. Please try again or contact us directly.',
+    errName: 'Please enter your name or company name',
+    errPhone: 'Please enter your phone number',
+    errPhoneFormat: 'Phone number must be 9-10 digits',
+    errProjectType: 'Please select a project type',
+    errBudget: 'Please select a budget range',
+    errDeadline: 'Please select a timeline',
+    errRequirements: 'Please tell us what you need',
+  },
+} as const
+
+// EN labels for dropdown options (values stay Thai for DB)
+const PROJECT_TYPE_EN: Record<string, string> = {
+  'เว็บไซต์แนะนำตัว / โชว์ผลงาน (แค่แสดงข้อมูล ไม่มีระบบ)': 'Portfolio / Landing Page (display only, no backend)',
+  'แอปมือถือ (ใช้งานบนโทรศัพท์ iOS / Android)': 'Mobile App (iOS / Android)',
+  'ระบบออนไลน์ / โปรแกรมใช้งานผ่านเน็ต (เช่น ระบบจอง, นัดหมาย, บัญชี)': 'Web Application (e.g. booking, scheduling, accounting)',
+  'ร้านค้าออนไลน์ (ขายสินค้า รับชำระเงินในเว็บ)': 'E-commerce (online store with payments)',
+  'ระบบจัดการหลังบ้าน (ดูข้อมูล, สต็อก, พนักงาน ฯลฯ)': 'Admin / Back-office System (data, stock, HR, etc.)',
+  'ไม่แน่ใจ / อื่นๆ (บอกรายละเอียดด้านล่างได้เลย)': 'Not sure / Other (describe below)',
+}
+
+const BUDGET_EN: Record<string, string> = {
+  'ต่ำกว่า 3,000 บาท (หน้าเดียว โชว์ข้อมูลพื้นฐาน)': 'Under 3,000 THB (single page, basic info)',
+  '3,000 - 8,000 บาท (หลายหน้า มีฟอร์มติดต่อ)': '3,000 - 8,000 THB (multi-page, contact form)',
+  '8,000 - 20,000 บาท (ออกแบบสวยงาม ครบถ้วน)': '8,000 - 20,000 THB (beautifully designed, complete)',
+  'มากกว่า 20,000 บาท': 'Over 20,000 THB',
+  'ต่ำกว่า 30,000 บาท (แอปง่ายๆ ฟีเจอร์เดียว)': 'Under 30,000 THB (simple app, single feature)',
+  '30,000 - 80,000 บาท (แอปขนาดเล็ก-กลาง)': '30,000 - 80,000 THB (small-medium app)',
+  '80,000 - 200,000 บาท (แอปครบฟีเจอร์ ซับซ้อน)': '80,000 - 200,000 THB (full-featured, complex)',
+  'มากกว่า 200,000 บาท': 'Over 200,000 THB',
+  'ต่ำกว่า 15,000 บาท (ระบบง่าย ฟีเจอร์เดียว)': 'Under 15,000 THB (simple system, single feature)',
+  '15,000 - 50,000 บาท (ระบบขนาดกลาง)': '15,000 - 50,000 THB (medium system)',
+  '50,000 - 150,000 บาท (ระบบซับซ้อน หลายฟีเจอร์)': '50,000 - 150,000 THB (complex, multi-feature)',
+  'มากกว่า 150,000 บาท': 'Over 150,000 THB',
+  'ต่ำกว่า 20,000 บาท (ร้านค้าพื้นฐาน)': 'Under 20,000 THB (basic store)',
+  '20,000 - 60,000 บาท (ร้านค้าครบฟีเจอร์)': '20,000 - 60,000 THB (full-featured store)',
+  '60,000 - 150,000 บาท (ร้านค้าขนาดใหญ่ หลายระบบ)': '60,000 - 150,000 THB (large store, multi-system)',
+  'ต่ำกว่า 15,000 บาท (ระบบง่าย จัดการข้อมูลพื้นฐาน)': 'Under 15,000 THB (simple, basic data management)',
+  '50,000 - 150,000 บาท (ระบบซับซ้อน หลายโมดูล)': '50,000 - 150,000 THB (complex, multi-module)',
+  'ต่ำกว่า 10,000 บาท': 'Under 10,000 THB',
+  '10,000 - 50,000 บาท': '10,000 - 50,000 THB',
+  '50,000 - 200,000 บาท': '50,000 - 200,000 THB',
+  'ยังไม่มีงบในใจ / อยากให้ประเมินก่อน': 'No budget in mind / Need estimation first',
+}
+
+const DEADLINE_EN: Record<string, string> = {
+  'ภายใน 1 สัปดาห์ (เร่งด่วนมาก)': 'Within 1 week (very urgent)',
+  'ภายใน 2-4 สัปดาห์': 'Within 2-4 weeks',
+  'ภายใน 1-3 เดือน': 'Within 1-3 months',
+  'มากกว่า 3 เดือน': 'More than 3 months',
+  'ยังไม่กำหนด': 'Not decided yet',
+}
+
+// ─── Helpers ────────────────────────────────────────────
 const INITIAL_FORM: NewClientRequirement = {
   client_name: '',
   contact_info: '',
@@ -21,23 +152,26 @@ const INITIAL_FORM: NewClientRequirement = {
   has_existing_system: false,
 }
 
-const COOLDOWN_MS = 3 * 60 * 1000 // 3 นาที
+const COOLDOWN_MS = 3 * 60 * 1000
 const STORAGE_KEY = 'last_submit_time'
 
 function isValidPhone(value: string) {
   return /^\d{9,10}$/.test(value.replace(/\D/g, ''))
 }
 
-function validate(form: NewClientRequirement): FormErrors {
-  const e: FormErrors = {}
-  if (!form.client_name.trim())       e.client_name   = 'กรุณากรอกชื่อ-นามสกุล หรือชื่อบริษัท'
-  if (!form.contact_info.trim())      e.contact_info  = 'กรุณากรอกเบอร์โทรศัพท์'
-  else if (!isValidPhone(form.contact_info)) e.contact_info = 'เบอร์โทรต้องเป็นตัวเลข 9-10 หลัก'
-  if (!form.project_type)             e.project_type  = 'กรุณาเลือกประเภทของงาน'
-  if (!form.budget)                   e.budget        = 'กรุณาเลือกช่วงงบประมาณ'
-  if (!form.deadline)                 e.deadline      = 'กรุณาเลือกกำหนดส่งงานที่ต้องการ'
-  if (!form.requirements.trim())      e.requirements  = 'กรุณาบอกว่าอยากได้อะไร เขียนแบบไหนก็ได้ครับ'
-  return e
+function makeValidate(lang: Lang) {
+  const s = t[lang]
+  return (form: NewClientRequirement): FormErrors => {
+    const e: FormErrors = {}
+    if (!form.client_name.trim())       e.client_name   = s.errName
+    if (!form.contact_info.trim())      e.contact_info  = s.errPhone
+    else if (!isValidPhone(form.contact_info)) e.contact_info = s.errPhoneFormat
+    if (!form.project_type)             e.project_type  = s.errProjectType
+    if (!form.budget)                   e.budget        = s.errBudget
+    if (!form.deadline)                 e.deadline      = s.errDeadline
+    if (!form.requirements.trim())      e.requirements  = s.errRequirements
+    return e
+  }
 }
 
 function inputClass(hasError: boolean) {
@@ -80,20 +214,38 @@ function SectionLabel({ children, required = true }: { children: React.ReactNode
   )
 }
 
+function LangToggle({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(lang === 'th' ? 'en' : 'th')}
+      className="fixed top-4 right-4 z-50 px-3 py-1.5 rounded-full border border-gray-700/60 bg-[#12121a] text-sm font-medium text-gray-300 hover:border-gray-500 transition-colors"
+    >
+      {lang === 'th' ? 'EN' : 'TH'}
+    </button>
+  )
+}
+
+// ─── Component ──────────────────────────────────────────
 export default function LeadForm() {
   const [form, setForm]       = useState<NewClientRequirement>(INITIAL_FORM)
   const [errors, setErrors]   = useState<FormErrors>({})
   const [touched, setTouched] = useState<Partial<Record<keyof NewClientRequirement, boolean>>>({})
   const [status, setStatus]   = useState<FormStatus>('idle')
   const [cooldownSec, setCooldownSec] = useState(0)
+  const [lang, setLang]       = useState<Lang>('th')
 
+  const s = t[lang]
+  const validate = makeValidate(lang)
   const isLoading = status === 'loading'
   const budgetOptions = form.project_type ? (BUDGET_BY_PROJECT_TYPE[form.project_type] ?? []) : []
+
+  const optionLabel = (value: string, map: Record<string, string>) =>
+    lang === 'en' ? (map[value] ?? value) : value
 
   function handleChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    // ถ้าเปลี่ยนประเภทงาน ให้ล้างงบประมาณที่เลือกไว้
     const updated = name === 'project_type'
       ? { ...form, project_type: value as string, budget: '' }
       : { ...form, [name]: val }
@@ -122,8 +274,6 @@ export default function LeadForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-
-    // เช็ค cooldown
     const lastSubmit = Number(localStorage.getItem(STORAGE_KEY) || 0)
     if (Date.now() < lastSubmit) { startCooldown(); return }
 
@@ -133,10 +283,8 @@ export default function LeadForm() {
     if (Object.keys(errs).length > 0) return
 
     setStatus('loading')
-
     try {
       await saveClientRequirement(form)
-      // DB Trigger (pg_net) จัดการส่ง Telegram อัตโนมัติ ไม่ต้องทำอะไรเพิ่ม
       setStatus('success')
       setForm(INITIAL_FORM)
       setTouched({})
@@ -149,13 +297,12 @@ export default function LeadForm() {
     }
   }
 
-  // --- หน้า Success ---
+  // --- Success page ---
   if (status === 'success' || status === 'cooldown') {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Subtle background glow */}
+        <LangToggle lang={lang} onChange={setLang} />
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
         <div className="bg-[#12121a] border border-gray-800/60 rounded-xl p-10 max-w-md w-full text-center relative z-10">
           <TerminalDots />
           <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-5">
@@ -163,24 +310,25 @@ export default function LeadForm() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">ขอบคุณมากครับ/ค่ะ!</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">{s.successTitle}</h2>
           <p className="text-gray-400 leading-relaxed mb-6">
-            ทีมงานได้รับข้อมูลแล้ว จะติดต่อกลับภายใน{' '}
-            <span className="font-semibold text-emerald-400">24 ชั่วโมง</span>
+            {s.successMsg}{' '}
+            <span className="font-semibold text-emerald-400">{s.successTime}</span>
           </p>
           {status === 'cooldown' && cooldownSec > 0 && (
-            <p className="text-sm text-gray-500">
-              ส่งข้อมูลใหม่ได้ในอีก {cooldownSec} วินาที
-            </p>
+            <p className="text-sm text-gray-500">{s.cooldownMsg(cooldownSec)}</p>
           )}
         </div>
       </div>
     )
   }
 
+  // --- Form page ---
   return (
     <div className="min-h-screen bg-[#0a0a0f] py-10 px-4 relative overflow-hidden">
-      {/* Background ambient effects */}
+      <LangToggle lang={lang} onChange={setLang} />
+
+      {/* Background ambient */}
       <div className="absolute top-20 left-1/4 w-2 h-2 bg-emerald-400/30 rounded-full" />
       <div className="absolute top-40 right-1/3 w-1.5 h-1.5 bg-emerald-400/20 rounded-full" />
       <div className="absolute bottom-32 left-1/3 w-1 h-1 bg-gray-500/30 rounded-full" />
@@ -191,12 +339,12 @@ export default function LeadForm() {
       <div className="max-w-2xl mx-auto relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-sm font-mono text-gray-500 mb-3 tracking-wider">// new project</p>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">เริ่มโปรเจกต์ของคุณ</h1>
-          <p className="text-gray-400">กรอกข้อมูลด้านล่าง ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+          <p className="text-sm font-mono text-gray-500 mb-3 tracking-wider">{s.headerComment}</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{s.headerTitle}</h1>
+          <p className="text-gray-400">{s.headerSubtitle}</p>
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-sm text-emerald-400">พร้อมรับงาน</span>
+            <span className="text-sm text-emerald-400">{s.statusBadge}</span>
           </div>
         </div>
 
@@ -206,41 +354,43 @@ export default function LeadForm() {
 
           <TerminalDots />
 
-          {/* ชื่อ */}
+          {/* Name */}
           <div>
-            <SectionLabel>ชื่อ-นามสกุล / ชื่อบริษัท</SectionLabel>
+            <SectionLabel>{s.labelName}</SectionLabel>
             <input type="text" name="client_name" value={form.client_name}
               onChange={handleChange} onBlur={handleBlur} disabled={isLoading}
-              placeholder="เช่น สมชาย ใจดี หรือ บริษัท XYZ จำกัด"
+              placeholder={s.placeholderName}
               className={inputClass(!!errors.client_name)} />
             <ErrorMsg msg={errors.client_name} />
           </div>
 
-          {/* เบอร์โทร */}
+          {/* Phone */}
           <div>
-            <SectionLabel>เบอร์โทรศัพท์ติดต่อ</SectionLabel>
+            <SectionLabel>{s.labelPhone}</SectionLabel>
             <input type="tel" name="contact_info" value={form.contact_info}
               onChange={handleChange} onBlur={handleBlur} disabled={isLoading}
-              placeholder="เช่น 0812345678"
+              placeholder={s.placeholderPhone}
               className={inputClass(!!errors.contact_info)} />
             <ErrorMsg msg={errors.contact_info} />
           </div>
 
-          {/* ประเภทงาน */}
+          {/* Project Type */}
           <div>
-            <SectionLabel>ประเภทของงาน</SectionLabel>
+            <SectionLabel>{s.labelProjectType}</SectionLabel>
             <select name="project_type" value={form.project_type}
               onChange={handleChange} onBlur={handleBlur} disabled={isLoading}
               className={inputClass(!!errors.project_type)}>
-              <option value="">-- เลือกประเภทงาน --</option>
-              {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="">{s.selectProjectType}</option>
+              {PROJECT_TYPES.map(pt => (
+                <option key={pt} value={pt}>{optionLabel(pt, PROJECT_TYPE_EN)}</option>
+              ))}
             </select>
             <ErrorMsg msg={errors.project_type} />
           </div>
 
-          {/* มีระบบเก่าอยู่แล้วไหม */}
+          {/* Existing system */}
           <div>
-            <SectionLabel>มีเว็บไซต์/ระบบเก่าอยู่แล้วหรือไม่?</SectionLabel>
+            <SectionLabel>{s.labelExisting}</SectionLabel>
             <div className="flex gap-3">
               {([false, true] as const).map(val => (
                 <label key={String(val)} className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${
@@ -253,18 +403,18 @@ export default function LeadForm() {
                     checked={form.has_existing_system === val}
                     onChange={() => setForm(p => ({ ...p, has_existing_system: val }))}
                     className="accent-emerald-500" />
-                  {val ? 'มีอยู่แล้ว' : 'ยังไม่มี'}
+                  {val ? s.existingYes : s.existingNo}
                 </label>
               ))}
             </div>
           </div>
 
-          {/* งบประมาณ */}
+          {/* Budget */}
           <div>
-            <SectionLabel>ช่วงงบประมาณที่ต้องการ</SectionLabel>
+            <SectionLabel>{s.labelBudget}</SectionLabel>
             {!form.project_type ? (
               <p className="text-sm text-gray-500 italic py-3 px-4 bg-[#0d1117] rounded-lg border border-dashed border-gray-700/60">
-                กรุณาเลือกประเภทงานก่อน แล้วงบประมาณจะแสดงให้เองครับ
+                {s.budgetHint}
               </p>
             ) : (
               <div className="space-y-2">
@@ -280,7 +430,7 @@ export default function LeadForm() {
                       checked={form.budget === range}
                       onChange={handleChange} disabled={isLoading}
                       className="mt-0.5 accent-emerald-500 shrink-0" />
-                    <span className="text-sm text-gray-300 leading-relaxed">{range}</span>
+                    <span className="text-sm text-gray-300 leading-relaxed">{optionLabel(range, BUDGET_EN)}</span>
                   </label>
                 ))}
               </div>
@@ -288,39 +438,41 @@ export default function LeadForm() {
             <ErrorMsg msg={errors.budget} />
           </div>
 
-          {/* กำหนดส่งงาน */}
+          {/* Deadline */}
           <div>
-            <SectionLabel>กำหนดส่งงานที่ต้องการ</SectionLabel>
+            <SectionLabel>{s.labelDeadline}</SectionLabel>
             <select name="deadline" value={form.deadline ?? ''}
               onChange={e => setForm(p => ({ ...p, deadline: e.target.value || null }))}
               onBlur={handleBlur} disabled={isLoading}
               className={inputClass(!!errors.deadline)}>
-              <option value="">-- เลือกระยะเวลา --</option>
-              {DEADLINE_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+              <option value="">{s.selectDeadline}</option>
+              {DEADLINE_OPTIONS.map(d => (
+                <option key={d} value={d}>{optionLabel(d, DEADLINE_EN)}</option>
+              ))}
             </select>
             <ErrorMsg msg={errors.deadline} />
           </div>
 
-          {/* เว็บอ้างอิง */}
+          {/* Reference URL */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">
-              เว็บไซต์อ้างอิงที่ชอบ <span className="text-gray-500 font-normal">(ไม่บังคับ)</span>
+              {s.labelRef} <span className="text-gray-500 font-normal">{s.labelRefOptional}</span>
             </label>
             <input type="url" name="reference_url" value={form.reference_url ?? ''}
               onChange={e => setForm(p => ({ ...p, reference_url: e.target.value || null }))}
               disabled={isLoading}
-              placeholder="เช่น https://example.com"
+              placeholder={s.placeholderRef}
               className={inputClass(false)} />
-            <p className="mt-1 text-xs text-gray-500">ใส่เว็บที่ชอบ style หรือ feature ทีมจะได้เข้าใจได้เร็วขึ้น</p>
+            <p className="mt-1 text-xs text-gray-500">{s.refHint}</p>
           </div>
 
-          {/* รายละเอียด */}
+          {/* Requirements */}
           <div>
-            <SectionLabel>อยากได้อะไรบ้าง? บอกเราได้เลย</SectionLabel>
-            <p className="text-xs text-gray-500 mb-2">ไม่ต้องใช้ภาษาเทคนิค เขียนแบบคุยกันเองก็ได้ครับ</p>
+            <SectionLabel>{s.labelRequirements}</SectionLabel>
+            <p className="text-xs text-gray-500 mb-2">{s.requirementsHint}</p>
             <textarea name="requirements" value={form.requirements}
               onChange={handleChange} onBlur={handleBlur} disabled={isLoading} rows={5}
-              placeholder="เช่น อยากได้เว็บขายของ มีรูปสินค้า ลูกค้ากดสั่งได้ จ่ายเงินผ่านบัตรได้ และมีหน้าให้เราจัดการออเดอร์"
+              placeholder={s.placeholderRequirements}
               className={inputClass(!!errors.requirements) + ' resize-none'} />
             <ErrorMsg msg={errors.requirements} />
           </div>
@@ -331,11 +483,8 @@ export default function LeadForm() {
               <div className="flex items-start gap-3">
                 <span className="text-2xl shrink-0">:(</span>
                 <div>
-                  <p className="font-semibold text-gray-200 text-sm">ขออภัย ส่งข้อมูลไม่สำเร็จในขณะนี้</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    อาจเกิดจากสัญญาณอินเทอร์เน็ต หรือระบบกำลังปรับปรุงชั่วคราว
-                    กรุณาลองใหม่อีกครั้ง หรือติดต่อทีมงานโดยตรงได้เลยครับ
-                  </p>
+                  <p className="font-semibold text-gray-200 text-sm">{s.errorTitle}</p>
+                  <p className="text-sm text-gray-400 mt-1">{s.errorMsg}</p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-1">
@@ -365,17 +514,14 @@ export default function LeadForm() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                กำลังดำเนินการ...
+                {s.submitting}
               </>
-            ) : 'ส่งข้อมูลขอใบเสนอราคา'}
+            ) : s.submitBtn}
           </button>
 
-          <p className="text-center text-xs text-gray-600">
-            ข้อมูลของคุณจะถูกเก็บเป็นความลับ และใช้เพื่อประเมินราคาเท่านั้น
-          </p>
+          <p className="text-center text-xs text-gray-600">{s.privacyNote}</p>
         </form>
 
-        {/* Footer branding */}
         <p className="text-center text-xs text-gray-600 mt-6">
           Powered by <span className="text-gray-400 font-medium">FarAways</span><span className="text-emerald-400 font-medium">Tech</span>
         </p>
